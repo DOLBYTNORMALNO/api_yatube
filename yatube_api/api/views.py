@@ -1,5 +1,5 @@
 from rest_framework import viewsets, permissions
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import NotAuthenticated
 from posts.models import Post, Comment, Group
 from .serializers import PostSerializer, CommentSerializer, GroupSerializer
 
@@ -21,6 +21,12 @@ class PostViewSet(viewsets.ModelViewSet):
     serializer_class = PostSerializer
     permission_classes = [IsAuthorOrReadOnly]
 
+    def perform_create(self, serializer):
+        if self.request.user.is_authenticated:
+            serializer.save(author=self.request.user)
+        else:
+            raise NotAuthenticated("You must be authenticated to create a post.")
+
 class CommentViewSet(viewsets.ModelViewSet):
     queryset = Comment.objects.all()
     serializer_class = CommentSerializer
@@ -28,6 +34,16 @@ class CommentViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
+
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        return Response(serializer.data)
+
+    def perform_update(self, serializer):
+        serializer.save()
 
 class GroupViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Group.objects.all()
