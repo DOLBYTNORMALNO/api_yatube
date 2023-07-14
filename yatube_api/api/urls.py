@@ -16,5 +16,5 @@ urlpatterns = [
     path('posts/<int:post_id>/comments/<int:pk>/',
          CommentViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'}),
          name='comment_detail'),
-    path('api/v1/api-token-auth/', obtain_auth_token, name='api_token_auth'),
+    path('api-token-auth/', obtain_auth_token, name='api_token_auth'),
 ]
