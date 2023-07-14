@@ -1,3 +1,4 @@
+from django.shortcuts import get_object_or_404
 from rest_framework import viewsets, permissions
 from rest_framework.exceptions import NotAuthenticated
 from posts.models import Post, Comment, Group
@@ -28,22 +29,16 @@ class PostViewSet(viewsets.ModelViewSet):
             raise NotAuthenticated("You must be authenticated to create a post.")
 
 class CommentViewSet(viewsets.ModelViewSet):
-    queryset = Comment.objects.all()
     serializer_class = CommentSerializer
     permission_classes = [IsAuthorOrReadOnly]
 
+    def get_queryset(self):
+        post = get_object_or_404(Post, id=self.kwargs.get('post_id'))
+        return post.comments.all()
+
     def perform_create(self, serializer):
-        serializer.save(author=self.request.user)
-
-    def update(self, request, *args, **kwargs):
-        instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_update(serializer)
-        return Response(serializer.data)
-
-    def perform_update(self, serializer):
-        serializer.save()
+        post = get_object_or_404(Post, id=self.kwargs.get('post_id'))
+        serializer.save(author=self.request.user, post=post)
 
 class GroupViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Group.objects.all()
