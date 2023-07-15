@@ -7,20 +7,18 @@ from .serializers import PostSerializer, CommentSerializer, GroupSerializer
 from rest_framework import permissions
 
 
-class IsAuthorOrDeny(permissions.BasePermission):
-    """
-    Custom permission to only allow authors of an object to view, edit or delete it.
-    """
-
+class IsAuthorOrReadOnly(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
-        # Permissions are only allowed to the author of the post.
+        if request.method in permissions.SAFE_METHODS:
+            return True
+
         return obj.author == request.user
 
 
 class PostViewSet(viewsets.ModelViewSet):
     queryset = Post.objects.all()
     serializer_class = PostSerializer
-    permission_classes = [IsAuthorOrDeny]
+    permission_classes = [IsAuthorOrReadOnly]
 
     def perform_create(self, serializer):
         if self.request.user.is_authenticated:
@@ -31,15 +29,18 @@ class PostViewSet(viewsets.ModelViewSet):
 
 class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
-    permission_classes = [IsAuthorOrDeny]  # Изменено здесь
+    permission_classes = [IsAuthorOrReadOnly]
 
     def get_queryset(self):
         post = get_object_or_404(Post, id=self.kwargs.get('post_id'))
         return post.comments.all()
 
     def perform_create(self, serializer):
-        post = get_object_or_404(Post, id=self.kwargs.get('post_id'))
-        serializer.save(author=self.request.user, post=post)
+        if self.request.user.is_authenticated:
+            post = get_object_or_404(Post, id=self.kwargs.get('post_id'))
+            serializer.save(author=self.request.user, post=post)
+        else:
+            raise NotAuthenticated("You must be authenticated to create a comment.")
 
 
 class GroupViewSet(viewsets.ReadOnlyModelViewSet):
