@@ -4,17 +4,17 @@ from rest_framework.exceptions import NotAuthenticated
 from posts.models import Post, Comment, Group
 from .serializers import PostSerializer, CommentSerializer, GroupSerializer
 
-
 from rest_framework import permissions
+
 
 class IsAuthorOrDeny(permissions.BasePermission):
     """
     Custom permission to only allow authors of an object to view, edit or delete it.
     """
+
     def has_object_permission(self, request, view, obj):
         # Permissions are only allowed to the author of the post.
         return obj.author == request.user
-
 
 
 class PostViewSet(viewsets.ModelViewSet):
@@ -40,7 +40,6 @@ class CommentViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         post = get_object_or_404(Post, id=self.kwargs.get('post_id'))
         serializer.save(author=self.request.user, post=post)
-
 
 
 class GroupViewSet(viewsets.ReadOnlyModelViewSet):
